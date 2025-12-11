@@ -7,22 +7,43 @@
 <div class="row g-4">
     <div class="col-md-6">
         <h3>Učebna</h3>
-        <EditForm Model="_newClassroom" OnValidSubmit="HandleAddClassroom">
+        <EditForm Model="_newClassroom" OnValidSubmit="HandleAddClassroom" FormName="ClassroomForm">
             <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newClassroom.Name" placeholder="Název" /></div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newClassroom.Code" placeholder="Kód" /></div>
-            <div class="mb-2"><InputNumber class="form-control" @bind-Value="_newClassroom.Floor" placeholder="Patro" /></div>
-            <div class="mb-2"><InputNumber class="form-control" @bind-Value="_newClassroom.Capacity" placeholder="Kapacita" /></div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newClassroom.Purpose" placeholder="Určení" /></div>
+            <div class="mb-2">
+                <label class="form-label" for="classroom-name">Název učebny</label>
+                <InputText id="classroom-name" class="form-control" @bind-Value="_newClassroom.Name" placeholder="Např. Počítačová 101" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="classroom-code">Zkratka</label>
+                <InputText id="classroom-code" class="form-control" @bind-Value="_newClassroom.Code" placeholder="PC101" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="classroom-floor">Patro</label>
+                <InputNumber id="classroom-floor" class="form-control" @bind-Value="_newClassroom.Floor" placeholder="1" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="classroom-capacity">Kapacita</label>
+                <InputNumber id="classroom-capacity" class="form-control" @bind-Value="_newClassroom.Capacity" placeholder="30" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="classroom-purpose">Určení</label>
+                <InputText id="classroom-purpose" class="form-control" @bind-Value="_newClassroom.Purpose" placeholder="Počítačová / multimediální" />
+            </div>
             <button class="btn btn-primary" type="submit">Přidat učebnu</button>
         </EditForm>
     </div>
     <div class="col-md-6">
         <h3>Katedra</h3>
-        <EditForm Model="_newDepartment" OnValidSubmit="HandleAddDepartment">
+        <EditForm Model="_newDepartment" OnValidSubmit="HandleAddDepartment" FormName="DepartmentForm">
             <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newDepartment.Code" placeholder="Kód" /></div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newDepartment.Name" placeholder="Název" /></div>
+            <div class="mb-2">
+                <label class="form-label" for="department-code">Třímístná zkratka</label>
+                <InputText id="department-code" class="form-control" @bind-Value="_newDepartment.Code" placeholder="INF" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="department-name">Název katedry</label>
+                <InputText id="department-name" class="form-control" @bind-Value="_newDepartment.Name" placeholder="Katedra informatiky" />
+            </div>
             <button class="btn btn-primary" type="submit">Přidat katedru</button>
         </EditForm>
     </div>
@@ -32,9 +53,12 @@
 <div class="row g-4">
     <div class="col-md-6">
         <h3>Předmět</h3>
-        <EditForm Model="_newSubject" OnValidSubmit="HandleAddSubject">
+        <EditForm Model="_newSubject" OnValidSubmit="HandleAddSubject" FormName="SubjectForm">
             <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newSubject.Name" placeholder="Název" /></div>
+            <div class="mb-2">
+                <label class="form-label" for="subject-name">Název předmětu</label>
+                <InputText id="subject-name" class="form-control" @bind-Value="_newSubject.Name" placeholder="Programování" />
+            </div>
             <div class="mb-2">
                 <label class="form-label">Katedra</label>
                 <InputSelect class="form-select" @bind-Value="_newSubject.DepartmentCode">
@@ -44,27 +68,43 @@
                     }
                 </InputSelect>
             </div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newSubject.SubjectCode" placeholder="Zkratka předmětu" /></div>
-            <div class="mb-2"><InputNumber class="form-control" @bind-Value="_newSubject.Credits" placeholder="Kredity" /></div>
+            <div class="mb-2">
+                <label class="form-label" for="subject-code">Zkratka předmětu (3-5 znaků)</label>
+                <InputText id="subject-code" class="form-control" @bind-Value="_newSubject.SubjectCode" placeholder="PRG1" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="subject-credits">Počet kreditů</label>
+                <InputNumber id="subject-credits" class="form-control" @bind-Value="_newSubject.Credits" placeholder="6" />
+            </div>
             <button class="btn btn-primary" type="submit">Přidat předmět</button>
         </EditForm>
     </div>
     <div class="col-md-6">
         <h3>Role &amp; Osoby</h3>
-        <EditForm Model="_newRole" OnValidSubmit="HandleAddRole">
+        <EditForm Model="_newRole" OnValidSubmit="HandleAddRole" FormName="RoleForm">
             <div class="input-group mb-2">
-                <InputText class="form-control" @bind-Value="_newRole.RoleType" placeholder="Typ role" />
+                <label class="input-group-text" for="role-type">Typ role</label>
+                <InputText id="role-type" class="form-control" @bind-Value="_newRole.RoleType" placeholder="Vyučující / garant" />
                 <button class="btn btn-outline-secondary" type="submit">Přidat roli</button>
             </div>
         </EditForm>
 
-        <EditForm Model="_newPerson" OnValidSubmit="HandleAddPerson">
+        <EditForm Model="_newPerson" OnValidSubmit="HandleAddPerson" FormName="PersonForm">
             <DataAnnotationsValidator />
             <div class="row g-2 mb-2">
-                <div class="col"><InputText class="form-control" @bind-Value="_newPerson.FirstName" placeholder="Jméno" /></div>
-                <div class="col"><InputText class="form-control" @bind-Value="_newPerson.LastName" placeholder="Příjmení" /></div>
+                <div class="col">
+                    <label class="form-label" for="person-first">Jméno</label>
+                    <InputText id="person-first" class="form-control" @bind-Value="_newPerson.FirstName" placeholder="Jiří" />
+                </div>
+                <div class="col">
+                    <label class="form-label" for="person-last">Příjmení</label>
+                    <InputText id="person-last" class="form-control" @bind-Value="_newPerson.LastName" placeholder="Král" />
+                </div>
             </div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newPerson.Title" placeholder="Titul (volitelné)" /></div>
+            <div class="mb-2">
+                <label class="form-label" for="person-title">Titul (volitelné)</label>
+                <InputText id="person-title" class="form-control" @bind-Value="_newPerson.Title" placeholder="Ing." />
+            </div>
             <div class="mb-2">
                 <label class="form-label">Zařazení</label>
                 <InputSelect class="form-select" @bind-Value="_newPerson.Affiliation">
@@ -91,15 +131,18 @@
 <div class="row g-4">
     <div class="col-md-6">
         <h3>Druh lekce</h3>
-        <EditForm Model="_newLessonType" OnValidSubmit="HandleAddLessonType">
+        <EditForm Model="_newLessonType" OnValidSubmit="HandleAddLessonType" FormName="LessonTypeForm">
             <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newLessonType.Name" placeholder="Např. přednáška" /></div>
+            <div class="mb-2">
+                <label class="form-label" for="lesson-type-name">Popis druhu lekce</label>
+                <InputText id="lesson-type-name" class="form-control" @bind-Value="_newLessonType.Name" placeholder="Přednáška / cvičení" />
+            </div>
             <button class="btn btn-primary" type="submit">Přidat druh</button>
         </EditForm>
     </div>
     <div class="col-md-6">
         <h3>Lekce</h3>
-        <EditForm Model="_newLesson" OnValidSubmit="HandleAddLesson">
+        <EditForm Model="_newLesson" OnValidSubmit="HandleAddLesson" FormName="LessonForm">
             <DataAnnotationsValidator />
             <div class="mb-2">
                 <label class="form-label">Předmět</label>
@@ -120,8 +163,14 @@
                 </InputSelect>
             </div>
             <div class="row g-2 mb-2">
-                <div class="col"><InputText class="form-control" @bind-Value="_start" placeholder="Začátek (HH:mm)" /></div>
-                <div class="col"><InputText class="form-control" @bind-Value="_end" placeholder="Konec (HH:mm)" /></div>
+                <div class="col">
+                    <label class="form-label" for="lesson-start">Začátek (HH:mm)</label>
+                    <InputText id="lesson-start" class="form-control" @bind-Value="_start" placeholder="08:00" />
+                </div>
+                <div class="col">
+                    <label class="form-label" for="lesson-end">Konec (HH:mm)</label>
+                    <InputText id="lesson-end" class="form-control" @bind-Value="_end" placeholder="09:30" />
+                </div>
             </div>
             <div class="mb-2">
                 <label class="form-label">Učebna</label>
