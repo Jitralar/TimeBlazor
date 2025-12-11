@@ -82,8 +82,8 @@ public class ScheduleService
         _people.AddRange([
             new Person
             {
-                FirstName = "Jiří",
-                LastName = "Král",
+                FirstName = "Jan",
+                LastName = "Novík",
                 Title = "Ing.",
                 Affiliation = "Akademický pracovník",
                 RoleId = lecturerRole.Id

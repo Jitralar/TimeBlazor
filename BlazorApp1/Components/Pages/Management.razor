@@ -4,166 +4,234 @@
 <h1>Správa evidence</h1>
 <p class="text-muted">Přidávejte nové entity pro rozvrh. Pro jednoduchost se data ukládají pouze v paměti.</p>
 
-<div class="row g-4">
-    <div class="col-md-6">
-        <h3>Učebna</h3>
-        <EditForm Model="_newClassroom" OnValidSubmit="HandleAddClassroom">
-            <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newClassroom.Name" placeholder="Název" /></div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newClassroom.Code" placeholder="Kód" /></div>
-            <div class="mb-2"><InputNumber class="form-control" @bind-Value="_newClassroom.Floor" placeholder="Patro" /></div>
-            <div class="mb-2"><InputNumber class="form-control" @bind-Value="_newClassroom.Capacity" placeholder="Kapacita" /></div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newClassroom.Purpose" placeholder="Určení" /></div>
-            <button class="btn btn-primary" type="submit">Přidat učebnu</button>
-        </EditForm>
-    </div>
-    <div class="col-md-6">
-        <h3>Katedra</h3>
-        <EditForm Model="_newDepartment" OnValidSubmit="HandleAddDepartment">
-            <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newDepartment.Code" placeholder="Kód" /></div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newDepartment.Name" placeholder="Název" /></div>
-            <button class="btn btn-primary" type="submit">Přidat katedru</button>
-        </EditForm>
-    </div>
-</div>
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(_activeTab == "main" ? "active" : string.Empty)" type="button" @onclick='() => SwitchTab("main")'>Základní údaje</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(_activeTab == "advanced" ? "active" : string.Empty)" type="button" @onclick='() => SwitchTab("advanced")'>Pokročilé indexy</button>
+    </li>
+</ul>
 
-<hr />
-<div class="row g-4">
-    <div class="col-md-6">
-        <h3>Předmět</h3>
-        <EditForm Model="_newSubject" OnValidSubmit="HandleAddSubject">
-            <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newSubject.Name" placeholder="Název" /></div>
-            <div class="mb-2">
-                <label class="form-label">Katedra</label>
-                <InputSelect class="form-select" @bind-Value="_newSubject.DepartmentCode">
-                    @foreach (var dep in ScheduleService.Departments)
-                    {
-                        <option value="@dep.Code">@dep.Code - @dep.Name</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newSubject.SubjectCode" placeholder="Zkratka předmětu" /></div>
-            <div class="mb-2"><InputNumber class="form-control" @bind-Value="_newSubject.Credits" placeholder="Kredity" /></div>
-            <button class="btn btn-primary" type="submit">Přidat předmět</button>
-        </EditForm>
+@if (_activeTab == "main")
+{
+    <div class="row g-4">
+        <div class="col-md-6">
+            <h3>Učebna</h3>
+            <EditForm Model="_newClassroom" OnValidSubmit="HandleAddClassroom" FormName="ClassroomForm">
+                <DataAnnotationsValidator />
+                <div class="mb-2">
+                    <label class="form-label" for="classroom-name">Název učebny</label>
+                    <InputText id="classroom-name" class="form-control" @bind-Value="_newClassroom.Name" placeholder="Např. Počítačová 101" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="classroom-code">Zkratka</label>
+                    <InputText id="classroom-code" class="form-control" @bind-Value="_newClassroom.Code" placeholder="PC101" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="classroom-floor">Patro</label>
+                    <InputNumber id="classroom-floor" class="form-control" @bind-Value="_newClassroom.Floor" placeholder="1" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="classroom-capacity">Kapacita</label>
+                    <InputNumber id="classroom-capacity" class="form-control" @bind-Value="_newClassroom.Capacity" placeholder="30" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="classroom-purpose">Určení</label>
+                    <InputText id="classroom-purpose" class="form-control" @bind-Value="_newClassroom.Purpose" placeholder="Počítačová / multimediální" />
+                </div>
+                <button class="btn btn-primary" type="submit">Přidat učebnu</button>
+            </EditForm>
+        </div>
+        <div class="col-md-6">
+            <h3>Předmět</h3>
+            <EditForm Model="_newSubject" OnValidSubmit="HandleAddSubject" FormName="SubjectForm">
+                <DataAnnotationsValidator />
+                <div class="mb-2">
+                    <label class="form-label" for="subject-name">Název předmětu</label>
+                    <InputText id="subject-name" class="form-control" @bind-Value="_newSubject.Name" placeholder="Programování" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Katedra</label>
+                    <InputSelect class="form-select" @bind-Value="_newSubject.DepartmentCode">
+                        @foreach (var dep in ScheduleService.Departments)
+                        {
+                            <option value="@dep.Code">@dep.Code - @dep.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="subject-code">Zkratka předmětu (3-5 znaků)</label>
+                    <InputText id="subject-code" class="form-control" @bind-Value="_newSubject.SubjectCode" placeholder="PRG1" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="subject-credits">Počet kreditů</label>
+                    <InputNumber id="subject-credits" class="form-control" @bind-Value="_newSubject.Credits" placeholder="6" />
+                </div>
+                <button class="btn btn-primary" type="submit">Přidat předmět</button>
+            </EditForm>
+        </div>
     </div>
-    <div class="col-md-6">
-        <h3>Role &amp; Osoby</h3>
-        <EditForm Model="_newRole" OnValidSubmit="HandleAddRole">
-            <div class="input-group mb-2">
-                <InputText class="form-control" @bind-Value="_newRole.RoleType" placeholder="Typ role" />
-                <button class="btn btn-outline-secondary" type="submit">Přidat roli</button>
-            </div>
-        </EditForm>
 
-        <EditForm Model="_newPerson" OnValidSubmit="HandleAddPerson">
-            <DataAnnotationsValidator />
-            <div class="row g-2 mb-2">
-                <div class="col"><InputText class="form-control" @bind-Value="_newPerson.FirstName" placeholder="Jméno" /></div>
-                <div class="col"><InputText class="form-control" @bind-Value="_newPerson.LastName" placeholder="Příjmení" /></div>
-            </div>
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newPerson.Title" placeholder="Titul (volitelné)" /></div>
-            <div class="mb-2">
-                <label class="form-label">Zařazení</label>
-                <InputSelect class="form-select" @bind-Value="_newPerson.Affiliation">
-                    <option value="Akademický pracovník">Akademický pracovník</option>
-                    <option value="Student">Student</option>
-                </InputSelect>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Typ role (pouze akademici)</label>
-                <InputSelect class="form-select" @bind-Value="_newPerson.RoleId">
-                    <option value="">Bez role</option>
-                    @foreach (var role in ScheduleService.Roles)
-                    {
-                        <option value="@role.Id">@role.RoleType</option>
-                    }
-                </InputSelect>
-            </div>
-            <button class="btn btn-primary" type="submit">Přidat osobu</button>
-        </EditForm>
-    </div>
-</div>
+    <hr />
 
-<hr />
-<div class="row g-4">
-    <div class="col-md-6">
-        <h3>Druh lekce</h3>
-        <EditForm Model="_newLessonType" OnValidSubmit="HandleAddLessonType">
-            <DataAnnotationsValidator />
-            <div class="mb-2"><InputText class="form-control" @bind-Value="_newLessonType.Name" placeholder="Např. přednáška" /></div>
-            <button class="btn btn-primary" type="submit">Přidat druh</button>
-        </EditForm>
-    </div>
-    <div class="col-md-6">
-        <h3>Lekce</h3>
-        <EditForm Model="_newLesson" OnValidSubmit="HandleAddLesson">
-            <DataAnnotationsValidator />
-            <div class="mb-2">
-                <label class="form-label">Předmět</label>
-                <InputSelect class="form-select" @bind-Value="_newLesson.SubjectCode">
-                    @foreach (var subject in ScheduleService.Subjects)
-                    {
-                        <option value="@subject.SubjectCode">@subject.SubjectCode - @subject.Name</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="mb-2">
-                <label class="form-label">Den</label>
-                <InputSelect class="form-select" @bind-Value="_newLesson.Day">
-                    @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
-                    {
-                        <option value="@day">@day</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="row g-2 mb-2">
-                <div class="col"><InputText class="form-control" @bind-Value="_start" placeholder="Začátek (HH:mm)" /></div>
-                <div class="col"><InputText class="form-control" @bind-Value="_end" placeholder="Konec (HH:mm)" /></div>
-            </div>
-            <div class="mb-2">
-                <label class="form-label">Učebna</label>
-                <InputSelect class="form-select" @bind-Value="_newLesson.ClassroomCode">
-                    @foreach (var room in ScheduleService.Classrooms)
-                    {
-                        <option value="@room.Code">@room.Code - @room.Name</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="mb-2">
-                <label class="form-label">Druh lekce</label>
-                <InputSelect class="form-select" @bind-Value="_newLesson.LessonTypeId">
-                    @foreach (var lt in ScheduleService.LessonTypes)
-                    {
-                        <option value="@lt.Id">@lt.Name</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="mb-2">
-                <label class="form-label">Vyučující</label>
-                <InputSelect class="form-select" @bind-Value="_newLesson.LecturerId">
-                    @foreach (var person in ScheduleService.People.Where(p => p.Affiliation == "Akademický pracovník"))
-                    {
-                        <option value="@person.Id">@person.FullName</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Zapsaní studenti</label>
-                @foreach (var student in ScheduleService.People.Where(p => p.Affiliation == "Student"))
-                {
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="@student.Id" @onchange="args => ToggleStudent(student.Id, args.Value)">
-                        <label class="form-check-label">@student.FullName</label>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <h3>Role &amp; Osoby</h3>
+            <EditForm Model="_newPerson" OnValidSubmit="HandleAddPerson" FormName="PersonForm">
+                <DataAnnotationsValidator />
+                <div class="row g-2 mb-2">
+                    <div class="col">
+                        <label class="form-label" for="person-first">Jméno</label>
+                        <InputText id="person-first" class="form-control" @bind-Value="_newPerson.FirstName" placeholder="Jiří" />
                     </div>
-                }
-            </div>
-            <button class="btn btn-success" type="submit">Přidat lekci</button>
-        </EditForm>
+                    <div class="col">
+                        <label class="form-label" for="person-last">Příjmení</label>
+                        <InputText id="person-last" class="form-control" @bind-Value="_newPerson.LastName" placeholder="Král" />
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="person-title">Titul (volitelné)</label>
+                    <InputText id="person-title" class="form-control" @bind-Value="_newPerson.Title" placeholder="Ing." />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Zařazení</label>
+                    <InputSelect class="form-select" @bind-Value="_newPerson.Affiliation">
+                        <option value="Akademický pracovník">Akademický pracovník</option>
+                        <option value="Student">Student</option>
+                    </InputSelect>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Typ role (pouze akademici)</label>
+                    <InputSelect class="form-select" @bind-Value="_newPerson.RoleId">
+                        <option value="">Bez role</option>
+                        @foreach (var role in ScheduleService.Roles)
+                        {
+                            <option value="@role.Id">@role.RoleType</option>
+                        }
+                    </InputSelect>
+                </div>
+                <button class="btn btn-primary" type="submit">Přidat osobu</button>
+            </EditForm>
+        </div>
+        <div class="col-md-6">
+            <h3>Lekce</h3>
+            <EditForm Model="_newLesson" OnValidSubmit="HandleAddLesson" FormName="LessonForm">
+                <DataAnnotationsValidator />
+                <div class="mb-2">
+                    <label class="form-label">Předmět</label>
+                    <InputSelect class="form-select" @bind-Value="_newLesson.SubjectCode">
+                        @foreach (var subject in ScheduleService.Subjects)
+                        {
+                            <option value="@subject.SubjectCode">@subject.SubjectCode - @subject.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Den</label>
+                    <InputSelect class="form-select" @bind-Value="_newLesson.Day">
+                        @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                        {
+                            <option value="@day">@day</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col">
+                        <label class="form-label" for="lesson-start">Začátek (HH:mm)</label>
+                        <InputText id="lesson-start" class="form-control" @bind-Value="_start" placeholder="08:00" />
+                    </div>
+                    <div class="col">
+                        <label class="form-label" for="lesson-end">Konec (HH:mm)</label>
+                        <InputText id="lesson-end" class="form-control" @bind-Value="_end" placeholder="09:30" />
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Učebna</label>
+                    <InputSelect class="form-select" @bind-Value="_newLesson.ClassroomCode">
+                        @foreach (var room in ScheduleService.Classrooms)
+                        {
+                            <option value="@room.Code">@room.Code - @room.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Druh lekce</label>
+                    <InputSelect class="form-select" @bind-Value="_newLesson.LessonTypeId">
+                        @foreach (var lt in ScheduleService.LessonTypes)
+                        {
+                            <option value="@lt.Id">@lt.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Vyučující</label>
+                    <InputSelect class="form-select" @bind-Value="_newLesson.LecturerId">
+                        @foreach (var person in ScheduleService.People.Where(p => p.Affiliation == "Akademický pracovník"))
+                        {
+                            <option value="@person.Id">@person.FullName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Zapsaní studenti</label>
+                    @foreach (var student in ScheduleService.People.Where(p => p.Affiliation == "Student"))
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="@student.Id" @onchange="args => ToggleStudent(student.Id, args.Value)">
+                            <label class="form-check-label">@student.FullName</label>
+                        </div>
+                    }
+                </div>
+                <button class="btn btn-success" type="submit">Přidat lekci</button>
+            </EditForm>
+        </div>
     </div>
-</div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-md-4">
+            <h3>Katedra</h3>
+            <p class="small text-muted">Tabulka indexů pro vazbu předmětů na katedry.</p>
+            <EditForm Model="_newDepartment" OnValidSubmit="HandleAddDepartment" FormName="DepartmentForm">
+                <DataAnnotationsValidator />
+                <div class="mb-2">
+                    <label class="form-label" for="department-code">Třímístná zkratka</label>
+                    <InputText id="department-code" class="form-control" @bind-Value="_newDepartment.Code" placeholder="INF" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="department-name">Název katedry</label>
+                    <InputText id="department-name" class="form-control" @bind-Value="_newDepartment.Name" placeholder="Katedra informatiky" />
+                </div>
+                <button class="btn btn-primary" type="submit">Přidat katedru</button>
+            </EditForm>
+        </div>
+        <div class="col-md-4">
+            <h3>Role</h3>
+            <p class="small text-muted">Index pro akademické pracovníky.</p>
+            <EditForm Model="_newRole" OnValidSubmit="HandleAddRole" FormName="RoleForm">
+                <div class="input-group mb-2">
+                    <label class="input-group-text" for="role-type">Typ role</label>
+                    <InputText id="role-type" class="form-control" @bind-Value="_newRole.RoleType" placeholder="Vyučující / garant" />
+                    <button class="btn btn-outline-secondary" type="submit">Přidat roli</button>
+                </div>
+            </EditForm>
+        </div>
+        <div class="col-md-4">
+            <h3>Druh lekce</h3>
+            <p class="small text-muted">Index pro typy lekcí (přednáška, cvičení...).</p>
+            <EditForm Model="_newLessonType" OnValidSubmit="HandleAddLessonType" FormName="LessonTypeForm">
+                <DataAnnotationsValidator />
+                <div class="mb-2">
+                    <label class="form-label" for="lesson-type-name">Popis druhu lekce</label>
+                    <InputText id="lesson-type-name" class="form-control" @bind-Value="_newLessonType.Name" placeholder="Přednáška / cvičení" />
+                </div>
+                <button class="btn btn-primary" type="submit">Přidat druh</button>
+            </EditForm>
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrWhiteSpace(_message))
 {
@@ -181,55 +249,72 @@
     private string _start = "08:00";
     private string _end = "09:30";
     private string _message = string.Empty;
+    private string _activeTab = "main";
 
     protected override void OnInitialized()
     {
-        _newSubject.DepartmentCode = ScheduleService.Departments.FirstOrDefault()?.Code ?? string.Empty;
-        _newLesson.SubjectCode = ScheduleService.Subjects.FirstOrDefault()?.SubjectCode ?? string.Empty;
-        _newLesson.ClassroomCode = ScheduleService.Classrooms.FirstOrDefault()?.Code ?? string.Empty;
-        _newLesson.LessonTypeId = ScheduleService.LessonTypes.FirstOrDefault()?.Id ?? Guid.Empty;
-        _newLesson.LecturerId = ScheduleService.People.FirstOrDefault(p => p.Affiliation == "Akademický pracovník")?.Id ?? Guid.Empty;
+        SetDefaultSubjectDepartment();
+        ResetPersonDefaults();
+        ResetLessonDefaults();
     }
+
+    private void SwitchTab(string tab) => _activeTab = tab;
 
     private void HandleAddClassroom()
     {
+        var addedCode = _newClassroom.Code;
         ScheduleService.AddClassroom(_newClassroom);
+        _newLesson.ClassroomCode = addedCode;
         _newClassroom = new Classroom();
         _message = "Učebna byla přidána.";
     }
 
     private void HandleAddDepartment()
     {
+        var addedCode = _newDepartment.Code;
         ScheduleService.AddDepartment(_newDepartment);
         _newDepartment = new Department();
+        _newSubject.DepartmentCode = addedCode;
         _message = "Katedra byla přidána.";
     }
 
     private void HandleAddSubject()
     {
+        var addedCode = _newSubject.SubjectCode;
         ScheduleService.AddSubject(_newSubject);
         _newSubject = new Subject();
+        SetDefaultSubjectDepartment();
+        _newLesson.SubjectCode = addedCode;
         _message = "Předmět byl přidán.";
     }
 
     private void HandleAddRole()
     {
+        var addedRoleId = _newRole.Id;
         ScheduleService.AddRole(_newRole);
         _newRole = new Role();
+        _newPerson.RoleId = addedRoleId;
         _message = "Role byla přidána.";
     }
 
     private void HandleAddPerson()
     {
         ScheduleService.AddPerson(_newPerson);
+        if (_newPerson.Affiliation == "Akademický pracovník")
+        {
+            _newLesson.LecturerId = _newPerson.Id;
+        }
         _newPerson = new Person();
+        ResetPersonDefaults();
         _message = "Osoba byla přidána.";
     }
 
     private void HandleAddLessonType()
     {
+        var addedTypeId = _newLessonType.Id;
         ScheduleService.AddLessonType(_newLessonType);
         _newLessonType = new LessonType();
+        _newLesson.LessonTypeId = addedTypeId;
         _message = "Druh lekce byl přidán.";
     }
 
@@ -241,6 +326,7 @@
             _newLesson.EndTime = end;
             ScheduleService.AddLesson(_newLesson);
             _newLesson = new Lesson { Day = DayOfWeek.Monday };
+            ResetLessonDefaults();
             _start = "08:00";
             _end = "09:30";
             _message = "Lekce byla přidána.";
@@ -267,6 +353,49 @@
         else if (!isChecked)
         {
             _newLesson.StudentIds.Remove(studentId);
+        }
+    }
+
+    private void ResetPersonDefaults()
+    {
+        if (string.IsNullOrWhiteSpace(_newPerson.Affiliation))
+        {
+            _newPerson.Affiliation = "Student";
+        }
+    }
+
+    private void SetDefaultSubjectDepartment()
+    {
+        if (string.IsNullOrWhiteSpace(_newSubject.DepartmentCode) && ScheduleService.Departments.Any())
+        {
+            _newSubject.DepartmentCode = ScheduleService.Departments.First().Code;
+        }
+    }
+
+    private void ResetLessonDefaults()
+    {
+        if (string.IsNullOrWhiteSpace(_newLesson.SubjectCode) && ScheduleService.Subjects.Any())
+        {
+            _newLesson.SubjectCode = ScheduleService.Subjects.First().SubjectCode;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newLesson.ClassroomCode) && ScheduleService.Classrooms.Any())
+        {
+            _newLesson.ClassroomCode = ScheduleService.Classrooms.First().Code;
+        }
+
+        if (_newLesson.LessonTypeId == Guid.Empty && ScheduleService.LessonTypes.Any())
+        {
+            _newLesson.LessonTypeId = ScheduleService.LessonTypes.First().Id;
+        }
+
+        if (_newLesson.LecturerId == Guid.Empty)
+        {
+            var lecturer = ScheduleService.People.FirstOrDefault(p => p.Affiliation == "Akademický pracovník");
+            if (lecturer is not null)
+            {
+                _newLesson.LecturerId = lecturer.Id;
+            }
         }
     }
 }
