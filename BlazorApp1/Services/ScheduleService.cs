@@ -149,6 +149,8 @@ public class ScheduleService
     public async Task<Person> AddPersonAsync(Person person)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
+
+        Console.WriteLine("DB file: " + db.Database.GetDbConnection().DataSource);
         db.People.Add(person);
         await db.SaveChangesAsync();
         return person;
