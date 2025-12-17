@@ -1,0 +1,101 @@
+@page "/subjects/{SubjectCode}"
+@inject ScheduleService ScheduleService
+
+<PageTitle>Detail předmětu</PageTitle>
+
+@if (_subject is null)
+{
+    <div class="alert alert-danger">Předmět s kódem @SubjectCode nebyl nalezen.</div>
+}
+else
+{
+    <h1>@_subject.Name (@_subject.SubjectCode)</h1>
+    <p class="lead">@_subject.DepartmentCode · @_subject.Credits kreditů</p>
+
+    <h3>Lekce v týdnu</h3>
+    @if (!_lessons.Any())
+    {
+        <div class="alert alert-info">Pro tento předmět zatím nejsou naplánované žádné lekce.</div>
+    }
+    else
+    {
+        <ul class="list-group mb-3">
+            @foreach (var lesson in _lessons)
+            {
+                _classrooms.TryGetValue(lesson.ClassroomCode, out var classroom);
+                _lessonTypes.TryGetValue(lesson.LessonTypeId, out var lessonType);
+                _people.TryGetValue(lesson.LecturerId, out var lecturer);
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">@TranslateDay(lesson.Day) · @lessonType?.Name</div>
+                        <div class="small text-muted">@classroom?.Name (@classroom?.Code)</div>
+                        <div class="small">Vyučující: @lecturer?.FullName</div>
+                    </div>
+                    <span class="badge text-bg-secondary">@FormatTime(lesson.StartTime) – @FormatTime(lesson.EndTime)</span>
+                </li>
+            }
+        </ul>
+    }
+
+    <h3>Zapsaní studenti</h3>
+    @if (_students.Any())
+    {
+        <ul>
+            @foreach (var student in _students)
+            {
+                <li>@student.FullName</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p class="text-muted">Pro tento předmět nejsou zapsáni žádní studenti.</p>
+    }
+}
+
+@code {
+    [Parameter]
+    public string SubjectCode { get; set; } = string.Empty;
+
+    private Subject? _subject;
+    private List<Lesson> _lessons = new();
+    private List<Person> _students = new();
+    private Dictionary<string, Classroom> _classrooms = new();
+    private Dictionary<Guid, LessonType> _lessonTypes = new();
+    private Dictionary<Guid, Person> _people = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ScheduleService.InitializeAsync();
+        _subject = await ScheduleService.GetSubjectByCodeAsync(SubjectCode);
+        _lessons = (await ScheduleService.GetLessonsAsync())
+            .Where(l => l.SubjectCode.Equals(SubjectCode, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        _classrooms = (await ScheduleService.GetClassroomsAsync()).ToDictionary(c => c.Code, c => c);
+        _lessonTypes = (await ScheduleService.GetLessonTypesAsync()).ToDictionary(l => l.Id, l => l);
+        _people = (await ScheduleService.GetPeopleAsync()).ToDictionary(p => p.Id, p => p);
+
+        _students = _lessons
+            .SelectMany(l => l.StudentIds)
+            .Distinct()
+            .Select(id => _people.TryGetValue(id, out var person) ? person : null)
+            .Where(p => p is not null)
+            .Cast<Person>()
+            .ToList();
+    }
+
+    private static string FormatTime(TimeSpan time) => time.ToString("hh\\:mm");
+
+    private static string TranslateDay(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday => "Pondělí",
+        DayOfWeek.Tuesday => "Úterý",
+        DayOfWeek.Wednesday => "Středa",
+        DayOfWeek.Thursday => "Čtvrtek",
+        DayOfWeek.Friday => "Pátek",
+        DayOfWeek.Saturday => "Sobota",
+        DayOfWeek.Sunday => "Neděle",
+        _ => day.ToString()
+    };
+}
