@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 public class Department
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     [Required]
     [StringLength(3, MinimumLength = 3)]

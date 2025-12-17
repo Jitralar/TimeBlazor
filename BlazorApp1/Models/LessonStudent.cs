@@ -2,7 +2,7 @@ namespace BlazorApp1.Models;
 
 public class LessonStudent
 {
-    public Guid LessonId { get; set; }
+    public int LessonId { get; set; }
 
-    public Guid PersonId { get; set; }
+    public int PersonId { get; set; }
 }

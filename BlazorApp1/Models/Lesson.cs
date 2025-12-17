@@ -5,7 +5,7 @@ namespace BlazorApp1.Models;
 
 public class Lesson
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     [Required]
     public DayOfWeek Day { get; set; }
@@ -21,11 +21,11 @@ public class Lesson
     public string SubjectCode { get; set; } = string.Empty;
 
     [Required]
-    public Guid LessonTypeId { get; set; }
+    public int LessonTypeId { get; set; }
 
     [Required]
-    public Guid LecturerId { get; set; }
+    public int LecturerId { get; set; }
 
     [NotMapped]
-    public List<Guid> StudentIds { get; set; } = new();
+    public List<int> StudentIds { get; set; } = new();
 }

@@ -322,21 +322,20 @@ else
 
     private async Task HandleAddRoleAsync()
     {
-        var addedRoleId = _newRole.Id;
-        await ScheduleService.AddRoleAsync(_newRole);
+        var addedRole = await ScheduleService.AddRoleAsync(_newRole);
         await LoadDataAsync();
         _newRole = new Role();
-        _newPerson.RoleId = addedRoleId;
+        _newPerson.RoleId = addedRole.Id;
         _message = "Role byla přidána.";
     }
 
     private async Task HandleAddPersonAsync()
     {
-        await ScheduleService.AddPersonAsync(_newPerson);
+        var createdPerson = await ScheduleService.AddPersonAsync(_newPerson);
         await LoadDataAsync();
         if (_newPerson.Affiliation == "Akademický pracovník")
         {
-            _newLesson.LecturerId = _newPerson.Id;
+            _newLesson.LecturerId = createdPerson.Id;
         }
         _newPerson = new Person();
         ResetPersonDefaults();
@@ -345,11 +344,10 @@ else
 
     private async Task HandleAddLessonTypeAsync()
     {
-        var addedTypeId = _newLessonType.Id;
-        await ScheduleService.AddLessonTypeAsync(_newLessonType);
+        var addedLessonType = await ScheduleService.AddLessonTypeAsync(_newLessonType);
         await LoadDataAsync();
         _newLessonType = new LessonType();
-        _newLesson.LessonTypeId = addedTypeId;
+        _newLesson.LessonTypeId = addedLessonType.Id;
         _message = "Druh lekce byl přidán.";
     }
 
@@ -373,7 +371,7 @@ else
         }
     }
 
-    private void ToggleStudent(Guid studentId, object? value)
+    private void ToggleStudent(int studentId, object? value)
     {
         var isChecked = value switch
         {
@@ -420,12 +418,12 @@ else
             _newLesson.ClassroomCode = _classrooms.First().Code;
         }
 
-        if (_newLesson.LessonTypeId == Guid.Empty && _lessonTypes.Any())
+        if (_newLesson.LessonTypeId == 0 && _lessonTypes.Any())
         {
             _newLesson.LessonTypeId = _lessonTypes.First().Id;
         }
 
-        if (_newLesson.LecturerId == Guid.Empty)
+        if (_newLesson.LecturerId == 0)
         {
             var lecturer = _people.FirstOrDefault(p => p.Affiliation == "Akademický pracovník");
             if (lecturer is not null)

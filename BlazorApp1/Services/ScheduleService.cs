@@ -1,6 +1,7 @@
 using BlazorApp1.Data;
 using BlazorApp1.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 namespace BlazorApp1.Services;
 
@@ -16,7 +17,13 @@ public class ScheduleService
     public async Task InitializeAsync()
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
-        await db.Database.EnsureCreatedAsync();
+        var created = await db.Database.EnsureCreatedAsync();
+
+        if (!created && !await HasExpectedColumnsAsync(db))
+        {
+            await db.Database.EnsureDeletedAsync();
+            await db.Database.EnsureCreatedAsync();
+        }
 
         if (!await db.Departments.AnyAsync())
         {
@@ -95,67 +102,75 @@ public class ScheduleService
         return await db.Classrooms.AsNoTracking().FirstOrDefaultAsync(c => c.Code == code);
     }
 
-    public async Task<LessonType?> GetLessonTypeAsync(Guid id)
+    public async Task<LessonType?> GetLessonTypeAsync(int id)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         return await db.LessonTypes.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id);
     }
 
-    public async Task<Person?> GetPersonAsync(Guid id)
+    public async Task<Person?> GetPersonAsync(int id)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         return await db.People.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    public async Task AddClassroomAsync(Classroom classroom)
+    public async Task<Classroom> AddClassroomAsync(Classroom classroom)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         db.Classrooms.Add(classroom);
         await db.SaveChangesAsync();
+        return classroom;
     }
 
-    public async Task AddDepartmentAsync(Department department)
+    public async Task<Department> AddDepartmentAsync(Department department)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         db.Departments.Add(department);
         await db.SaveChangesAsync();
+        return department;
     }
 
-    public async Task AddSubjectAsync(Subject subject)
+    public async Task<Subject> AddSubjectAsync(Subject subject)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         db.Subjects.Add(subject);
         await db.SaveChangesAsync();
+        return subject;
     }
 
-    public async Task AddRoleAsync(Role role)
+    public async Task<Role> AddRoleAsync(Role role)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         db.Roles.Add(role);
         await db.SaveChangesAsync();
+        return role;
     }
 
-    public async Task AddPersonAsync(Person person)
+    public async Task<Person> AddPersonAsync(Person person)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         db.People.Add(person);
         await db.SaveChangesAsync();
+        return person;
     }
 
-    public async Task AddLessonTypeAsync(LessonType lessonType)
+    public async Task<LessonType> AddLessonTypeAsync(LessonType lessonType)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         db.LessonTypes.Add(lessonType);
         await db.SaveChangesAsync();
+        return lessonType;
     }
 
-    public async Task AddLessonAsync(Lesson lesson)
+    public async Task<Lesson> AddLessonAsync(Lesson lesson)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         var studentIds = lesson.StudentIds.ToList();
-        lesson.StudentIds = new List<Guid>();
+        lesson.StudentIds = new List<int>();
 
         db.Lessons.Add(lesson);
+        await db.SaveChangesAsync();
+
         if (studentIds.Any())
         {
             db.LessonStudents.AddRange(studentIds.Select(s => new LessonStudent
@@ -163,9 +178,10 @@ public class ScheduleService
                 LessonId = lesson.Id,
                 PersonId = s
             }));
+            await db.SaveChangesAsync();
         }
 
-        await db.SaveChangesAsync();
+        return lesson;
     }
 
     private static async Task SeedAsync(ScheduleDbContext db)
@@ -176,6 +192,7 @@ public class ScheduleService
             new() { Code = "KIT", Name = "Katedra informačních technologií" }
         };
         db.Departments.AddRange(departments);
+        await db.SaveChangesAsync();
 
         var roles = new List<Role>
         {
@@ -184,6 +201,7 @@ public class ScheduleService
             new() { RoleType = "Garant" }
         };
         db.Roles.AddRange(roles);
+        await db.SaveChangesAsync();
 
         var people = new List<Person>
         {
@@ -209,6 +227,7 @@ public class ScheduleService
             }
         };
         db.People.AddRange(people);
+        await db.SaveChangesAsync();
 
         var classrooms = new List<Classroom>
         {
@@ -216,6 +235,7 @@ public class ScheduleService
             new() { Name = "Počítačová laboratoř", Code = "PC204", Floor = 2, Capacity = 32, Purpose = "Počítačová" }
         };
         db.Classrooms.AddRange(classrooms);
+        await db.SaveChangesAsync();
 
         var lessonTypes = new List<LessonType>
         {
@@ -224,6 +244,7 @@ public class ScheduleService
             new() { Name = "Seminář" }
         };
         db.LessonTypes.AddRange(lessonTypes);
+        await db.SaveChangesAsync();
 
         var subjects = new List<Subject>
         {
@@ -243,6 +264,7 @@ public class ScheduleService
             }
         };
         db.Subjects.AddRange(subjects);
+        await db.SaveChangesAsync();
 
         var lecturer = people.First(p => p.Affiliation == "Akademický pracovník");
         var studentIds = people.Where(p => p.Affiliation == "Student").Select(p => p.Id).ToList();
@@ -284,6 +306,7 @@ public class ScheduleService
             }
         };
         db.Lessons.AddRange(lessons);
+        await db.SaveChangesAsync();
 
         db.LessonStudents.AddRange(lessons.SelectMany(l => studentIds.Select(s => new LessonStudent
         {
@@ -292,5 +315,33 @@ public class ScheduleService
         })));
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task<bool> HasExpectedColumnsAsync(ScheduleDbContext db)
+    {
+        var connection = db.Database.GetDbConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info('People');";
+        var columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var name = reader.GetString(1);
+            var type = reader.GetString(2);
+            columns[name] = type;
+        }
+
+        await connection.CloseAsync();
+
+        var expectedColumns = new[] { "Id", "FirstName", "LastName", "Title", "Affiliation", "RoleId" };
+        if (expectedColumns.Any(c => !columns.ContainsKey(c)))
+        {
+            return false;
+        }
+
+        return columns.TryGetValue("Id", out var idType)
+            && idType.Contains("INT", StringComparison.OrdinalIgnoreCase);
     }
 }

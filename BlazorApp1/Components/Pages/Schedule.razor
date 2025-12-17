@@ -41,8 +41,8 @@
     private IEnumerable<IGrouping<string, Lesson>> _groupedLessons = Enumerable.Empty<IGrouping<string, Lesson>>();
     private Dictionary<string, Subject> _subjects = new();
     private Dictionary<string, Classroom> _classrooms = new();
-    private Dictionary<Guid, LessonType> _lessonTypes = new();
-    private Dictionary<Guid, Person> _people = new();
+    private Dictionary<int, LessonType> _lessonTypes = new();
+    private Dictionary<int, Person> _people = new();
 
     protected override async Task OnInitializedAsync()
     {

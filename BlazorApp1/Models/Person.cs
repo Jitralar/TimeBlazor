@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 public class Person
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     [Required]
     public string FirstName { get; set; } = string.Empty;
@@ -17,7 +17,7 @@ public class Person
     [Required]
     public string Affiliation { get; set; } = string.Empty;
 
-    public Guid? RoleId { get; set; }
+    public int? RoleId { get; set; }
 
     public string FullName => string.IsNullOrWhiteSpace(Title)
         ? $"{FirstName} {LastName}"
