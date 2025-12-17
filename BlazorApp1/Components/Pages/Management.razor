@@ -2,7 +2,8 @@
 @inject ScheduleService ScheduleService
 
 <h1>Správa evidence</h1>
-<p class="text-muted">Přidávejte nové entity pro rozvrh. Pro jednoduchost se data ukládají pouze v paměti.</p>
+<p class="text-muted">Přidávejte nové entity pro rozvrh. Záznamy se ukládají do lokální databáze SQLite v adresáři <code>data</code>
+    a po restartu se z ní znovu načtou.</p>
 
 <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item" role="presentation">
@@ -18,7 +19,7 @@
     <div class="row g-4">
         <div class="col-md-6">
             <h3>Učebna</h3>
-            <EditForm Model="_newClassroom" OnValidSubmit="HandleAddClassroom" FormName="ClassroomForm">
+            <EditForm Model="_newClassroom" OnValidSubmit="HandleAddClassroomAsync" FormName="ClassroomForm">
                 <DataAnnotationsValidator />
                 <div class="mb-2">
                     <label class="form-label" for="classroom-name">Název učebny</label>
@@ -45,7 +46,7 @@
         </div>
         <div class="col-md-6">
             <h3>Předmět</h3>
-            <EditForm Model="_newSubject" OnValidSubmit="HandleAddSubject" FormName="SubjectForm">
+            <EditForm Model="_newSubject" OnValidSubmit="HandleAddSubjectAsync" FormName="SubjectForm">
                 <DataAnnotationsValidator />
                 <div class="mb-2">
                     <label class="form-label" for="subject-name">Název předmětu</label>
@@ -54,7 +55,7 @@
                 <div class="mb-2">
                     <label class="form-label">Katedra</label>
                     <InputSelect class="form-select" @bind-Value="_newSubject.DepartmentCode">
-                        @foreach (var dep in ScheduleService.Departments)
+                        @foreach (var dep in _departments)
                         {
                             <option value="@dep.Code">@dep.Code - @dep.Name</option>
                         }
@@ -78,7 +79,7 @@
     <div class="row g-4">
         <div class="col-md-6">
             <h3>Role &amp; Osoby</h3>
-            <EditForm Model="_newPerson" OnValidSubmit="HandleAddPerson" FormName="PersonForm">
+            <EditForm Model="_newPerson" OnValidSubmit="HandleAddPersonAsync" FormName="PersonForm">
                 <DataAnnotationsValidator />
                 <div class="row g-2 mb-2">
                     <div class="col">
@@ -105,7 +106,7 @@
                     <label class="form-label">Typ role (pouze akademici)</label>
                     <InputSelect class="form-select" @bind-Value="_newPerson.RoleId">
                         <option value="">Bez role</option>
-                        @foreach (var role in ScheduleService.Roles)
+                        @foreach (var role in _roles)
                         {
                             <option value="@role.Id">@role.RoleType</option>
                         }
@@ -116,12 +117,12 @@
         </div>
         <div class="col-md-6">
             <h3>Lekce</h3>
-            <EditForm Model="_newLesson" OnValidSubmit="HandleAddLesson" FormName="LessonForm">
+            <EditForm Model="_newLesson" OnValidSubmit="HandleAddLessonAsync" FormName="LessonForm">
                 <DataAnnotationsValidator />
                 <div class="mb-2">
                     <label class="form-label">Předmět</label>
                     <InputSelect class="form-select" @bind-Value="_newLesson.SubjectCode">
-                        @foreach (var subject in ScheduleService.Subjects)
+                        @foreach (var subject in _subjects)
                         {
                             <option value="@subject.SubjectCode">@subject.SubjectCode - @subject.Name</option>
                         }
@@ -149,7 +150,7 @@
                 <div class="mb-2">
                     <label class="form-label">Učebna</label>
                     <InputSelect class="form-select" @bind-Value="_newLesson.ClassroomCode">
-                        @foreach (var room in ScheduleService.Classrooms)
+                        @foreach (var room in _classrooms)
                         {
                             <option value="@room.Code">@room.Code - @room.Name</option>
                         }
@@ -158,7 +159,7 @@
                 <div class="mb-2">
                     <label class="form-label">Druh lekce</label>
                     <InputSelect class="form-select" @bind-Value="_newLesson.LessonTypeId">
-                        @foreach (var lt in ScheduleService.LessonTypes)
+                        @foreach (var lt in _lessonTypes)
                         {
                             <option value="@lt.Id">@lt.Name</option>
                         }
@@ -167,7 +168,7 @@
                 <div class="mb-2">
                     <label class="form-label">Vyučující</label>
                     <InputSelect class="form-select" @bind-Value="_newLesson.LecturerId">
-                        @foreach (var person in ScheduleService.People.Where(p => p.Affiliation == "Akademický pracovník"))
+                        @foreach (var person in _people.Where(p => p.Affiliation == "Akademický pracovník"))
                         {
                             <option value="@person.Id">@person.FullName</option>
                         }
@@ -175,7 +176,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Zapsaní studenti</label>
-                    @foreach (var student in ScheduleService.People.Where(p => p.Affiliation == "Student"))
+                    @foreach (var student in _people.Where(p => p.Affiliation == "Student"))
                     {
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="@student.Id" @onchange="args => ToggleStudent(student.Id, args.Value)">
@@ -194,7 +195,7 @@ else
         <div class="col-md-4">
             <h3>Katedra</h3>
             <p class="small text-muted">Tabulka indexů pro vazbu předmětů na katedry.</p>
-            <EditForm Model="_newDepartment" OnValidSubmit="HandleAddDepartment" FormName="DepartmentForm">
+            <EditForm Model="_newDepartment" OnValidSubmit="HandleAddDepartmentAsync" FormName="DepartmentForm">
                 <DataAnnotationsValidator />
                 <div class="mb-2">
                     <label class="form-label" for="department-code">Třímístná zkratka</label>
@@ -210,7 +211,7 @@ else
         <div class="col-md-4">
             <h3>Role</h3>
             <p class="small text-muted">Index pro akademické pracovníky.</p>
-            <EditForm Model="_newRole" OnValidSubmit="HandleAddRole" FormName="RoleForm">
+            <EditForm Model="_newRole" OnValidSubmit="HandleAddRoleAsync" FormName="RoleForm">
                 <div class="input-group mb-2">
                     <label class="input-group-text" for="role-type">Typ role</label>
                     <InputText id="role-type" class="form-control" @bind-Value="_newRole.RoleType" placeholder="Vyučující / garant" />
@@ -221,7 +222,7 @@ else
         <div class="col-md-4">
             <h3>Druh lekce</h3>
             <p class="small text-muted">Index pro typy lekcí (přednáška, cvičení...).</p>
-            <EditForm Model="_newLessonType" OnValidSubmit="HandleAddLessonType" FormName="LessonTypeForm">
+            <EditForm Model="_newLessonType" OnValidSubmit="HandleAddLessonTypeAsync" FormName="LessonTypeForm">
                 <DataAnnotationsValidator />
                 <div class="mb-2">
                     <label class="form-label" for="lesson-type-name">Popis druhu lekce</label>
@@ -246,13 +247,23 @@ else
     private Person _newPerson = new();
     private LessonType _newLessonType = new();
     private Lesson _newLesson = new() { Day = DayOfWeek.Monday };
+
+    private List<Classroom> _classrooms = new();
+    private List<Department> _departments = new();
+    private List<Subject> _subjects = new();
+    private List<Role> _roles = new();
+    private List<Person> _people = new();
+    private List<LessonType> _lessonTypes = new();
+
     private string _start = "08:00";
     private string _end = "09:30";
     private string _message = string.Empty;
     private string _activeTab = "main";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await ScheduleService.InitializeAsync();
+        await LoadDataAsync();
         SetDefaultSubjectDepartment();
         ResetPersonDefaults();
         ResetLessonDefaults();
@@ -260,46 +271,61 @@ else
 
     private void SwitchTab(string tab) => _activeTab = tab;
 
-    private void HandleAddClassroom()
+    private async Task LoadDataAsync()
+    {
+        _classrooms = await ScheduleService.GetClassroomsAsync();
+        _departments = await ScheduleService.GetDepartmentsAsync();
+        _subjects = await ScheduleService.GetSubjectsAsync();
+        _roles = await ScheduleService.GetRolesAsync();
+        _people = await ScheduleService.GetPeopleAsync();
+        _lessonTypes = await ScheduleService.GetLessonTypesAsync();
+    }
+
+    private async Task HandleAddClassroomAsync()
     {
         var addedCode = _newClassroom.Code;
-        ScheduleService.AddClassroom(_newClassroom);
+        await ScheduleService.AddClassroomAsync(_newClassroom);
+        await LoadDataAsync();
         _newLesson.ClassroomCode = addedCode;
         _newClassroom = new Classroom();
         _message = "Učebna byla přidána.";
     }
 
-    private void HandleAddDepartment()
+    private async Task HandleAddDepartmentAsync()
     {
         var addedCode = _newDepartment.Code;
-        ScheduleService.AddDepartment(_newDepartment);
+        await ScheduleService.AddDepartmentAsync(_newDepartment);
+        await LoadDataAsync();
         _newDepartment = new Department();
         _newSubject.DepartmentCode = addedCode;
         _message = "Katedra byla přidána.";
     }
 
-    private void HandleAddSubject()
+    private async Task HandleAddSubjectAsync()
     {
         var addedCode = _newSubject.SubjectCode;
-        ScheduleService.AddSubject(_newSubject);
+        await ScheduleService.AddSubjectAsync(_newSubject);
+        await LoadDataAsync();
         _newSubject = new Subject();
         SetDefaultSubjectDepartment();
         _newLesson.SubjectCode = addedCode;
         _message = "Předmět byl přidán.";
     }
 
-    private void HandleAddRole()
+    private async Task HandleAddRoleAsync()
     {
         var addedRoleId = _newRole.Id;
-        ScheduleService.AddRole(_newRole);
+        await ScheduleService.AddRoleAsync(_newRole);
+        await LoadDataAsync();
         _newRole = new Role();
         _newPerson.RoleId = addedRoleId;
         _message = "Role byla přidána.";
     }
 
-    private void HandleAddPerson()
+    private async Task HandleAddPersonAsync()
     {
-        ScheduleService.AddPerson(_newPerson);
+        await ScheduleService.AddPersonAsync(_newPerson);
+        await LoadDataAsync();
         if (_newPerson.Affiliation == "Akademický pracovník")
         {
             _newLesson.LecturerId = _newPerson.Id;
@@ -309,22 +335,24 @@ else
         _message = "Osoba byla přidána.";
     }
 
-    private void HandleAddLessonType()
+    private async Task HandleAddLessonTypeAsync()
     {
         var addedTypeId = _newLessonType.Id;
-        ScheduleService.AddLessonType(_newLessonType);
+        await ScheduleService.AddLessonTypeAsync(_newLessonType);
+        await LoadDataAsync();
         _newLessonType = new LessonType();
         _newLesson.LessonTypeId = addedTypeId;
         _message = "Druh lekce byl přidán.";
     }
 
-    private void HandleAddLesson()
+    private async Task HandleAddLessonAsync()
     {
         if (TimeSpan.TryParse(_start, out var start) && TimeSpan.TryParse(_end, out var end))
         {
             _newLesson.StartTime = start;
             _newLesson.EndTime = end;
-            ScheduleService.AddLesson(_newLesson);
+            await ScheduleService.AddLessonAsync(_newLesson);
+            await LoadDataAsync();
             _newLesson = new Lesson { Day = DayOfWeek.Monday };
             ResetLessonDefaults();
             _start = "08:00";
@@ -366,32 +394,32 @@ else
 
     private void SetDefaultSubjectDepartment()
     {
-        if (string.IsNullOrWhiteSpace(_newSubject.DepartmentCode) && ScheduleService.Departments.Any())
+        if (string.IsNullOrWhiteSpace(_newSubject.DepartmentCode) && _departments.Any())
         {
-            _newSubject.DepartmentCode = ScheduleService.Departments.First().Code;
+            _newSubject.DepartmentCode = _departments.First().Code;
         }
     }
 
     private void ResetLessonDefaults()
     {
-        if (string.IsNullOrWhiteSpace(_newLesson.SubjectCode) && ScheduleService.Subjects.Any())
+        if (string.IsNullOrWhiteSpace(_newLesson.SubjectCode) && _subjects.Any())
         {
-            _newLesson.SubjectCode = ScheduleService.Subjects.First().SubjectCode;
+            _newLesson.SubjectCode = _subjects.First().SubjectCode;
         }
 
-        if (string.IsNullOrWhiteSpace(_newLesson.ClassroomCode) && ScheduleService.Classrooms.Any())
+        if (string.IsNullOrWhiteSpace(_newLesson.ClassroomCode) && _classrooms.Any())
         {
-            _newLesson.ClassroomCode = ScheduleService.Classrooms.First().Code;
+            _newLesson.ClassroomCode = _classrooms.First().Code;
         }
 
-        if (_newLesson.LessonTypeId == Guid.Empty && ScheduleService.LessonTypes.Any())
+        if (_newLesson.LessonTypeId == Guid.Empty && _lessonTypes.Any())
         {
-            _newLesson.LessonTypeId = ScheduleService.LessonTypes.First().Id;
+            _newLesson.LessonTypeId = _lessonTypes.First().Id;
         }
 
         if (_newLesson.LecturerId == Guid.Empty)
         {
-            var lecturer = ScheduleService.People.FirstOrDefault(p => p.Affiliation == "Akademický pracovník");
+            var lecturer = _people.FirstOrDefault(p => p.Affiliation == "Akademický pracovník");
             if (lecturer is not null)
             {
                 _newLesson.LecturerId = lecturer.Id;

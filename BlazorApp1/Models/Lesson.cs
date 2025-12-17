@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace BlazorApp1.Models;
 
 public class Lesson
@@ -18,5 +20,6 @@ public class Lesson
 
     public Guid LecturerId { get; set; }
 
+    [NotMapped]
     public List<Guid> StudentIds { get; set; } = new();
 }

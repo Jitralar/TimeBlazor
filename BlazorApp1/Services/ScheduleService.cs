@@ -1,154 +1,258 @@
+using BlazorApp1.Data;
 using BlazorApp1.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlazorApp1.Services;
 
 public class ScheduleService
 {
-    private readonly List<Classroom> _classrooms = new();
-    private readonly List<Department> _departments = new();
-    private readonly List<Subject> _subjects = new();
-    private readonly List<Role> _roles = new();
-    private readonly List<Person> _people = new();
-    private readonly List<LessonType> _lessonTypes = new();
-    private readonly List<Lesson> _lessons = new();
+    private readonly IDbContextFactory<ScheduleDbContext> _dbFactory;
 
-    public ScheduleService()
+    public ScheduleService(IDbContextFactory<ScheduleDbContext> dbFactory)
     {
-        SeedDepartments();
-        SeedRoles();
-        SeedPeople();
-        SeedClassrooms();
-        SeedLessonTypes();
-        SeedSubjects();
-        SeedLessons();
+        _dbFactory = dbFactory;
     }
 
-    public IReadOnlyCollection<Classroom> Classrooms => _classrooms;
-    public IReadOnlyCollection<Department> Departments => _departments;
-    public IReadOnlyCollection<Subject> Subjects => _subjects;
-    public IReadOnlyCollection<Role> Roles => _roles;
-    public IReadOnlyCollection<Person> People => _people;
-    public IReadOnlyCollection<LessonType> LessonTypes => _lessonTypes;
-    public IReadOnlyCollection<Lesson> Lessons => _lessons;
-
-    public void AddClassroom(Classroom classroom) => _classrooms.Add(classroom);
-
-    public void AddDepartment(Department department) => _departments.Add(department);
-
-    public void AddSubject(Subject subject) => _subjects.Add(subject);
-
-    public void AddRole(Role role) => _roles.Add(role);
-
-    public void AddPerson(Person person) => _people.Add(person);
-
-    public void AddLessonType(LessonType lessonType) => _lessonTypes.Add(lessonType);
-
-    public void AddLesson(Lesson lesson) => _lessons.Add(lesson);
-
-    public Subject? GetSubjectByCode(string code) =>
-        _subjects.FirstOrDefault(s => s.SubjectCode.Equals(code, StringComparison.OrdinalIgnoreCase));
-
-    public Classroom? GetClassroomByCode(string code) =>
-        _classrooms.FirstOrDefault(c => c.Code.Equals(code, StringComparison.OrdinalIgnoreCase));
-
-    public LessonType? GetLessonType(Guid id) => _lessonTypes.FirstOrDefault(l => l.Id == id);
-
-    public Person? GetPerson(Guid id) => _people.FirstOrDefault(p => p.Id == id);
-
-    public IEnumerable<Lesson> GetWeeklyLessons() => _lessons
-        .OrderBy(l => l.Day)
-        .ThenBy(l => l.StartTime);
-
-    private void SeedDepartments()
+    public async Task InitializeAsync()
     {
-        _departments.AddRange([
-            new Department { Code = "KMA", Name = "Katedra matematiky" },
-            new Department { Code = "KIT", Name = "Katedra informačních technologií" }
-        ]);
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        await db.Database.EnsureCreatedAsync();
+
+        if (!await db.Departments.AnyAsync())
+        {
+            await SeedAsync(db);
+        }
     }
 
-    private void SeedRoles()
+    public async Task<List<Classroom>> GetClassroomsAsync()
     {
-        _roles.AddRange([
-            new Role { RoleType = "Vyučující" },
-            new Role { RoleType = "Přednášející" },
-            new Role { RoleType = "Garant" }
-        ]);
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Classrooms.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
     }
 
-    private void SeedPeople()
+    public async Task<List<Department>> GetDepartmentsAsync()
     {
-        var lecturerRole = _roles.First();
-        _people.AddRange([
-            new Person
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Departments.AsNoTracking().OrderBy(d => d.Code).ToListAsync();
+    }
+
+    public async Task<List<Subject>> GetSubjectsAsync()
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Subjects.AsNoTracking().OrderBy(s => s.SubjectCode).ToListAsync();
+    }
+
+    public async Task<List<Role>> GetRolesAsync()
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Roles.AsNoTracking().OrderBy(r => r.RoleType).ToListAsync();
+    }
+
+    public async Task<List<Person>> GetPeopleAsync()
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.People.AsNoTracking().OrderBy(p => p.LastName).ThenBy(p => p.FirstName).ToListAsync();
+    }
+
+    public async Task<List<LessonType>> GetLessonTypesAsync()
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.LessonTypes.AsNoTracking().OrderBy(l => l.Name).ToListAsync();
+    }
+
+    public async Task<List<Lesson>> GetLessonsAsync()
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var lessons = await db.Lessons.AsNoTracking().ToListAsync();
+        var studentLinks = await db.LessonStudents.AsNoTracking().ToListAsync();
+        var studentLookup = studentLinks
+            .GroupBy(l => l.LessonId)
+            .ToDictionary(g => g.Key, g => g.Select(s => s.PersonId).ToList());
+
+        foreach (var lesson in lessons)
+        {
+            if (studentLookup.TryGetValue(lesson.Id, out var students))
+            {
+                lesson.StudentIds = students;
+            }
+        }
+
+        return lessons
+            .OrderBy(l => l.Day)
+            .ThenBy(l => l.StartTime)
+            .ToList();
+    }
+
+    public async Task<Subject?> GetSubjectByCodeAsync(string code)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Subjects.AsNoTracking().FirstOrDefaultAsync(s => s.SubjectCode == code);
+    }
+
+    public async Task<Classroom?> GetClassroomByCodeAsync(string code)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Classrooms.AsNoTracking().FirstOrDefaultAsync(c => c.Code == code);
+    }
+
+    public async Task<LessonType?> GetLessonTypeAsync(Guid id)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.LessonTypes.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id);
+    }
+
+    public async Task<Person?> GetPersonAsync(Guid id)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.People.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task AddClassroomAsync(Classroom classroom)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.Classrooms.Add(classroom);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddDepartmentAsync(Department department)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.Departments.Add(department);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddSubjectAsync(Subject subject)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.Subjects.Add(subject);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddRoleAsync(Role role)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddPersonAsync(Person person)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.People.Add(person);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddLessonTypeAsync(LessonType lessonType)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.LessonTypes.Add(lessonType);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddLessonAsync(Lesson lesson)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var studentIds = lesson.StudentIds.ToList();
+        lesson.StudentIds = new List<Guid>();
+
+        db.Lessons.Add(lesson);
+        if (studentIds.Any())
+        {
+            db.LessonStudents.AddRange(studentIds.Select(s => new LessonStudent
+            {
+                LessonId = lesson.Id,
+                PersonId = s
+            }));
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedAsync(ScheduleDbContext db)
+    {
+        var departments = new List<Department>
+        {
+            new() { Code = "KMA", Name = "Katedra matematiky" },
+            new() { Code = "KIT", Name = "Katedra informačních technologií" }
+        };
+        db.Departments.AddRange(departments);
+
+        var roles = new List<Role>
+        {
+            new() { RoleType = "Vyučující" },
+            new() { RoleType = "Přednášející" },
+            new() { RoleType = "Garant" }
+        };
+        db.Roles.AddRange(roles);
+
+        var people = new List<Person>
+        {
+            new()
             {
                 FirstName = "Jan",
                 LastName = "Novík",
                 Title = "Ing.",
                 Affiliation = "Akademický pracovník",
-                RoleId = lecturerRole.Id
+                RoleId = roles.First().Id
             },
-            new Person
+            new()
             {
                 FirstName = "Petra",
                 LastName = "Nováková",
                 Affiliation = "Student"
             },
-            new Person
+            new()
             {
                 FirstName = "Jan",
                 LastName = "Dvořák",
                 Affiliation = "Student"
             }
-        ]);
-    }
+        };
+        db.People.AddRange(people);
 
-    private void SeedClassrooms()
-    {
-        _classrooms.AddRange([
-            new Classroom { Name = "Velká posluchárna", Code = "VP101", Floor = 1, Capacity = 120, Purpose = "Přednášková" },
-            new Classroom { Name = "Počítačová laboratoř", Code = "PC204", Floor = 2, Capacity = 32, Purpose = "Počítačová" }
-        ]);
-    }
+        var classrooms = new List<Classroom>
+        {
+            new() { Name = "Velká posluchárna", Code = "VP101", Floor = 1, Capacity = 120, Purpose = "Přednášková" },
+            new() { Name = "Počítačová laboratoř", Code = "PC204", Floor = 2, Capacity = 32, Purpose = "Počítačová" }
+        };
+        db.Classrooms.AddRange(classrooms);
 
-    private void SeedLessonTypes()
-    {
-        _lessonTypes.AddRange([
-            new LessonType { Name = "Přednáška" },
-            new LessonType { Name = "Cvičení" },
-            new LessonType { Name = "Seminář" }
-        ]);
-    }
+        var lessonTypes = new List<LessonType>
+        {
+            new() { Name = "Přednáška" },
+            new() { Name = "Cvičení" },
+            new() { Name = "Seminář" }
+        };
+        db.LessonTypes.AddRange(lessonTypes);
 
-    private void SeedSubjects()
-    {
-        _subjects.AddRange([
-            new Subject
+        var subjects = new List<Subject>
+        {
+            new()
             {
                 Name = "Programování v C#",
                 DepartmentCode = "KIT",
                 SubjectCode = "KIT-CSP",
                 Credits = 5
             },
-            new Subject
+            new()
             {
                 Name = "Lineární algebra",
                 DepartmentCode = "KMA",
                 SubjectCode = "KMA-LA",
                 Credits = 4
             }
-        ]);
-    }
+        };
+        db.Subjects.AddRange(subjects);
 
-    private void SeedLessons()
-    {
-        var lecture = _lessonTypes.First();
-        var lab = _lessonTypes.First(lt => lt.Name == "Cvičení");
-        var lecturer = _people.First();
-        var studentIds = _people.Where(p => p.Affiliation == "Student").Select(p => p.Id).ToList();
+        var lecturer = people.First(p => p.Affiliation == "Akademický pracovník");
+        var studentIds = people.Where(p => p.Affiliation == "Student").Select(p => p.Id).ToList();
 
-        _lessons.AddRange([
-            new Lesson
+        var lecture = lessonTypes.First();
+        var lab = lessonTypes.First(lt => lt.Name == "Cvičení");
+
+        var lessons = new List<Lesson>
+        {
+            new()
             {
                 SubjectCode = "KIT-CSP",
                 Day = DayOfWeek.Monday,
@@ -156,10 +260,9 @@ public class ScheduleService
                 EndTime = new TimeSpan(10, 30, 0),
                 ClassroomCode = "VP101",
                 LessonTypeId = lecture.Id,
-                LecturerId = lecturer.Id,
-                StudentIds = studentIds
+                LecturerId = lecturer.Id
             },
-            new Lesson
+            new()
             {
                 SubjectCode = "KIT-CSP",
                 Day = DayOfWeek.Wednesday,
@@ -167,10 +270,9 @@ public class ScheduleService
                 EndTime = new TimeSpan(15, 30, 0),
                 ClassroomCode = "PC204",
                 LessonTypeId = lab.Id,
-                LecturerId = lecturer.Id,
-                StudentIds = studentIds
+                LecturerId = lecturer.Id
             },
-            new Lesson
+            new()
             {
                 SubjectCode = "KMA-LA",
                 Day = DayOfWeek.Thursday,
@@ -178,9 +280,17 @@ public class ScheduleService
                 EndTime = new TimeSpan(9, 30, 0),
                 ClassroomCode = "VP101",
                 LessonTypeId = lecture.Id,
-                LecturerId = lecturer.Id,
-                StudentIds = studentIds
+                LecturerId = lecturer.Id
             }
-        ]);
+        };
+        db.Lessons.AddRange(lessons);
+
+        db.LessonStudents.AddRange(lessons.SelectMany(l => studentIds.Select(s => new LessonStudent
+        {
+            LessonId = l.Id,
+            PersonId = s
+        })));
+
+        await db.SaveChangesAsync();
     }
 }

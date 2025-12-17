@@ -22,9 +22,9 @@ else
         <ul class="list-group mb-3">
             @foreach (var lesson in _lessons)
             {
-                var classroom = ScheduleService.GetClassroomByCode(lesson.ClassroomCode);
-                var lecturer = ScheduleService.GetPerson(lesson.LecturerId);
-                var lessonType = ScheduleService.GetLessonType(lesson.LessonTypeId);
+                _classrooms.TryGetValue(lesson.ClassroomCode, out var classroom);
+                _lessonTypes.TryGetValue(lesson.LessonTypeId, out var lessonType);
+                _people.TryGetValue(lesson.LecturerId, out var lecturer);
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <div class="fw-semibold">@TranslateDay(lesson.Day) · @lessonType?.Name</div>
@@ -60,21 +60,32 @@ else
     private Subject? _subject;
     private List<Lesson> _lessons = new();
     private List<Person> _students = new();
+    private Dictionary<string, Classroom> _classrooms = new();
+    private Dictionary<Guid, LessonType> _lessonTypes = new();
+    private Dictionary<Guid, Person> _people = new();
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        _subject = ScheduleService.GetSubjectByCode(SubjectCode);
-        _lessons = ScheduleService.Lessons.Where(l => l.SubjectCode.Equals(SubjectCode, StringComparison.OrdinalIgnoreCase)).ToList();
+        await ScheduleService.InitializeAsync();
+        _subject = await ScheduleService.GetSubjectByCodeAsync(SubjectCode);
+        _lessons = (await ScheduleService.GetLessonsAsync())
+            .Where(l => l.SubjectCode.Equals(SubjectCode, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        _classrooms = (await ScheduleService.GetClassroomsAsync()).ToDictionary(c => c.Code, c => c);
+        _lessonTypes = (await ScheduleService.GetLessonTypesAsync()).ToDictionary(l => l.Id, l => l);
+        _people = (await ScheduleService.GetPeopleAsync()).ToDictionary(p => p.Id, p => p);
+
         _students = _lessons
             .SelectMany(l => l.StudentIds)
             .Distinct()
-            .Select(id => ScheduleService.GetPerson(id))
+            .Select(id => _people.TryGetValue(id, out var person) ? person : null)
             .Where(p => p is not null)
             .Cast<Person>()
             .ToList();
     }
 
-    private static string FormatTime(TimeSpan time) => time.ToString(@"hh\:mm");
+    private static string FormatTime(TimeSpan time) => time.ToString("hh\\:mm");
 
     private static string TranslateDay(DayOfWeek day) => day switch
     {

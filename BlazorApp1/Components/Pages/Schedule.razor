@@ -13,10 +13,10 @@
             <div class="list-group">
                 @foreach (var lesson in dayGroup)
                 {
-                    var subject = ScheduleService.GetSubjectByCode(lesson.SubjectCode);
-                    var classroom = ScheduleService.GetClassroomByCode(lesson.ClassroomCode);
-                    var lecturer = ScheduleService.GetPerson(lesson.LecturerId);
-                    var lessonType = ScheduleService.GetLessonType(lesson.LessonTypeId);
+                    _subjects.TryGetValue(lesson.SubjectCode, out var subject);
+                    _classrooms.TryGetValue(lesson.ClassroomCode, out var classroom);
+                    _lessonTypes.TryGetValue(lesson.LessonTypeId, out var lessonType);
+                    _people.TryGetValue(lesson.LecturerId, out var lecturer);
                     <div class="list-group-item">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
@@ -39,14 +39,25 @@
 
 @code {
     private IEnumerable<IGrouping<string, Lesson>> _groupedLessons = Enumerable.Empty<IGrouping<string, Lesson>>();
+    private Dictionary<string, Subject> _subjects = new();
+    private Dictionary<string, Classroom> _classrooms = new();
+    private Dictionary<Guid, LessonType> _lessonTypes = new();
+    private Dictionary<Guid, Person> _people = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _groupedLessons = ScheduleService.GetWeeklyLessons()
+        await ScheduleService.InitializeAsync();
+        var lessons = await ScheduleService.GetLessonsAsync();
+        _subjects = (await ScheduleService.GetSubjectsAsync()).ToDictionary(s => s.SubjectCode, s => s);
+        _classrooms = (await ScheduleService.GetClassroomsAsync()).ToDictionary(c => c.Code, c => c);
+        _lessonTypes = (await ScheduleService.GetLessonTypesAsync()).ToDictionary(l => l.Id, l => l);
+        _people = (await ScheduleService.GetPeopleAsync()).ToDictionary(p => p.Id, p => p);
+
+        _groupedLessons = lessons
             .GroupBy(l => TranslateDay(l.Day));
     }
 
-    private static string FormatTime(TimeSpan time) => time.ToString(@"hh\:mm");
+    private static string FormatTime(TimeSpan time) => time.ToString("hh\\:mm");
 
     private static string TranslateDay(DayOfWeek day) => day switch
     {
