@@ -24,10 +24,16 @@ public class ScheduleDbContext : DbContext
         modelBuilder.Entity<Department>().Property(d => d.Code).IsRequired();
         modelBuilder.Entity<Department>().Property(d => d.Name).IsRequired();
 
+        modelBuilder.Entity<Classroom>().Property(c => c.Name).IsRequired();
         modelBuilder.Entity<Classroom>().Property(c => c.Code).IsRequired();
+
+        modelBuilder.Entity<Subject>().Property(s => s.Name).IsRequired();
         modelBuilder.Entity<Subject>().Property(s => s.SubjectCode).IsRequired();
+        modelBuilder.Entity<Subject>().Property(s => s.DepartmentCode).IsRequired();
         modelBuilder.Entity<LessonType>().Property(l => l.Name).IsRequired();
         modelBuilder.Entity<Role>().Property(r => r.RoleType).IsRequired();
+        modelBuilder.Entity<Person>().Property(p => p.FirstName).IsRequired();
+        modelBuilder.Entity<Person>().Property(p => p.LastName).IsRequired();
         modelBuilder.Entity<Person>().Property(p => p.Affiliation).IsRequired();
 
         modelBuilder.Entity<LessonStudent>()
